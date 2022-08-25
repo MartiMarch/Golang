@@ -2,6 +2,7 @@ package main
 
 import (
 	"container/list"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -214,9 +215,76 @@ func main() {
 	fmt.Println("\n*****************")
 	fmt.Println("* MySQL")
 	fmt.Println("*****************")
-	var mysql = mysql_crear("root", "dos+3=CINCO", "192.168.1.33", "30306", "golang")
-	mysql.conexion(mysql)
+	var mysql = mysql_crear("golang", "dos+3=CINCO", "192.168.1.33", "30306", "golang")
+	var db = mysql.conexion(mysql)
+	mysql.ping(db)
 
+	fmt.Println("Tabla 'users' creada")
+	var q string = ""
+	q += "CREATE TABLE IF NOT EXISTS users("
+	q += "	id INT NOT NULL AUTO_INCREMENT,"
+	q += "	name varchar(30) NOT NULL,"
+	q += "	alias varchar(10) NOT NULL,"
+	q += " 	PRIMARY KEY (id)"
+	q += ");"
+	mysql.exec(db, q)
+
+	fmt.Println("us0 insertado")
+	q = ""
+	q += "INSERT INTO users (name, alias)"
+	q += "VALUES ('user01', 'us0');"
+	mysql.exec(db, q)
+	fmt.Println("user us0 insertado")
+
+	q = ""
+	q += "INSERT INTO users (name, alias)"
+	q += "VALUES ('user01', 'us1');"
+	mysql.exec(db, q)
+	fmt.Println("user us1 insertado")
+
+	q = ""
+	q += "INSERT INTO users (name, alias)"
+	q += "VALUES ('user02', 'us2');"
+	mysql.exec(db, q)
+	fmt.Println("user us2 insertado")
+
+	q = "SELECT * FROM users;"
+	var rows *sql.Rows
+
+	rows = mysql.query(db, q)
+	fmt.Print("Imprimiendo a través de variuables:\n")
+	n = 1
+	for rows.Next() {
+		var id int
+		var name string
+		var alias string
+		err = rows.Scan(&id, &name, &alias)
+		if err != nil {
+			log.Fatal(err)
+		}
+		fmt.Println("Iteracion ", n, ":\n    id: ", id, "\n    name: ", name, "\n    alias: ", alias)
+		n++
+	}
+
+	rows = mysql.query(db, q)
+	fmt.Print("Imprimiendo a través de un struct:\n")
+	n = 1
+	for rows.Next() {
+		var user User
+		err = rows.Scan(&user.id, &user.name, &user.alias)
+		if err != nil {
+			log.Fatal(err)
+		}
+		user = user_crear(user.id, user.name, user.alias)
+		user.print(user)
+		n++
+	}
+
+	q = "DROP TABLE users"
+	mysql.exec(db, q)
+	fmt.Println("Tabla users eliminada")
+
+	mysql.cerrar(db)
 }
 
 func callFunction() {
